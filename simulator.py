@@ -80,6 +80,11 @@ def generate_data():
                 calibration_factor=4
             )
 
+            zone["last_decision"] = result["action"]
+            zone["recommended_seconds"] = result.get("recommended_valve_seconds", 0)
+            zone["predicted_moisture"] = result.get("predicted_moisture", zone["moisture"])
+            zone["confidence"] = result.get("confidence", 0.87)
+
             # -----------------------------
             # Apply AI Decision
             # -----------------------------
