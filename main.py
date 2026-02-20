@@ -1,11 +1,18 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
+from threading import Thread
+from simulator import generate_data, zones_state, logs
 from fastapi.middleware.cors import CORSMiddleware
 import joblib
 import requests
 from decision_engine import make_decision
 
 app = FastAPI()
+
+@app.on_event("startup")
+def start_simulator():
+    thread = Thread(target=generate_data, daemon=True)
+    thread.start()
 
 app.add_middleware(
     CORSMiddleware,
@@ -133,4 +140,13 @@ def calibrate(request: CalibrationRequest):
         "measured_calibration_factor": round(measured_c, 2),
         "updated_calibration_factor": round(updated_c, 2)
     }
+
+@app.get("/zones")
+def get_zones():
+    return zones_state
+
+
+@app.get("/logs")
+def get_logs():
+    return logs[-20:]
  
