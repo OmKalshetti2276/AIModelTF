@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import joblib
 import requests
 from decision_engine import make_decision
+from simulator import generate_data, zones_state, logs, history
 
 app = FastAPI()
 
@@ -149,4 +150,8 @@ def get_zones():
 @app.get("/logs")
 def get_logs():
     return logs[-20:]
+
+@app.get("/history")
+def get_history():
+    return history
  
