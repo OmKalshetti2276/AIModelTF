@@ -7,6 +7,11 @@ import joblib
 import requests
 from decision_engine import make_decision
 from simulator import generate_data, zones_state, logs, history
+from datetime import datetime
+
+FIXED_LAT = 18.1510
+FIXED_LON = 74.5770
+
 
 app = FastAPI()
 
@@ -35,8 +40,6 @@ model = joblib.load("soil_response_model.pkl")
 class IrrigationRequest(BaseModel):
     soil_moisture: float
     soil_moisture_lag1: float
-    latitude: float
-    longitude: float
     soil_type: str
     slope: str
     crop_kc: float
@@ -51,34 +54,40 @@ class CalibrationRequest(BaseModel):
 
 
 # -----------------------------
-# Fetch ET0 from NASA POWER
+# Fetch Parameters from NASA POWER
 # -----------------------------
-def fetch_et0(lat, lon):
+def fetch_weather_data(lat, lon):
+    today = datetime.utcnow().strftime("%Y%m%d")
 
     url = (
         "https://power.larc.nasa.gov/api/temporal/hourly/point?"
-        "parameters=ET0,PRECTOTCORR&"
+        "parameters=T2M,RH2M,WS2M,ET0,PRECTOTCORR&"
         "community=AG&"
         f"latitude={lat}&longitude={lon}&"
-        "start=20240101&end=20240101&format=JSON"
+        f"start={today}&end={today}&format=JSON"
     )
 
     try:
         response = requests.get(url, timeout=5)
+        response.raise_for_status()
         data = response.json()
         params = data["properties"]["parameter"]
 
+        temperature = list(params["T2M"].values())[-1]
+        humidity = list(params["RH2M"].values())[-1]
+        wind_speed = list(params["WS2M"].values())[-1]
         et0_hourly = list(params["ET0"].values())[-1]
         rain_mm = list(params["PRECTOTCORR"].values())[-1]
 
         # Convert hourly ET to 15-minute ET
-        et_15min = (et0_hourly * 1.0) / 4
+        et_15min = et0_hourly / 4
 
-        return et_15min, rain_mm
+        return temperature, humidity, wind_speed, et_15min, rain_mm
 
-    except:
+    except Exception as e:
+        print("NASA API error:", e)
         # Safe fallback values
-        return 0.1, 0
+        return 30, 50, 2, 0.1, 0
 
 
 # -----------------------------
@@ -87,22 +96,22 @@ def fetch_et0(lat, lon):
 @app.post("/predict")
 def predict(request: IrrigationRequest):
 
-    et_15min, rain_mm = fetch_et0(
-        request.latitude,
-        request.longitude
-    )
+    temperature, humidity, wind_speed, et_15min, rain_mm = fetch_weather_data(
+    FIXED_LAT,
+    FIXED_LON
+)
 
     # Build model feature dictionary
     features = {
-        "temperature": 30,   # simplified default
-        "humidity": 50,
-        "wind_speed": 2,
-        "rain_mm": rain_mm,
-        "et_15min": et_15min * request.crop_kc,
-        "soil_moisture_current": request.soil_moisture,
-        "soil_moisture_lag1": request.soil_moisture_lag1,
-        "water_volume_liters": 0
-    }
+    "temperature": temperature,
+    "humidity": humidity,
+    "wind_speed": wind_speed,
+    "rain_mm": rain_mm,
+    "et_15min": et_15min * request.crop_kc,
+    "soil_moisture_current": request.soil_moisture,
+    "soil_moisture_lag1": request.soil_moisture_lag1,
+    "water_volume_liters": 0
+}
 
     result = make_decision(
         model=model,

@@ -2,13 +2,13 @@ import joblib
 import numpy as np
 from decision_engine import make_decision
 
-# Load trained model
+# Loaded the trained model
 model = joblib.load("soil_response_model.pkl")
 
 # -----------------------------
 # Sample Test Input
 # -----------------------------
-current_sm = 38.0
+current_sm = 34.0
 lag_sm = 39.0
 
 soil_type = "loamy"

@@ -46,7 +46,7 @@ model = RandomForestRegressor(
 
 model.fit(X_train, y_train)
 
-# Evaluation
+# Evaluation of the model that I trained
 predictions = model.predict(X_test)
 
 mae = mean_absolute_error(y_test, predictions)
@@ -55,6 +55,6 @@ r2 = r2_score(y_test, predictions)
 print(f"MAE: {mae:.4f}")
 print(f"R2 Score: {r2:.4f}")
 
-# Save model
+# Saving the model
 joblib.dump(model, "soil_response_model.pkl")
 print("Model saved successfully.")
