@@ -8,6 +8,7 @@ import requests
 from decision_engine import make_decision
 from simulator import generate_data, zones_state, logs, history
 from datetime import datetime
+from database import predictions_collection
 
 FIXED_LAT = 18.1510
 FIXED_LON = 74.5770
@@ -122,8 +123,38 @@ def predict(request: IrrigationRequest):
         calibration_factor=request.calibration_factor
     )
 
-    return result
 
+    # from datetime import datetime
+
+    document = {
+        "timestamp": datetime.utcnow(),
+        "location": {
+            "lat": FIXED_LAT,
+            "lon": FIXED_LON
+        },
+        "input_features": {
+            **features,
+            "crop_kc": request.crop_kc,
+            "soil_type": request.soil_type,
+            "slope": request.slope,
+            "calibration_factor": request.calibration_factor
+        },
+        "model_output": {
+            "predicted_soil_moisture": result.get("predicted_soil_moisture")
+        },
+        "decision": {
+            "action": result.get("action"),
+            "duration_seconds": result.get("duration_seconds"),
+            "water_volume_liters": result.get("water_volume_liters")
+        }
+    }
+
+    try:
+        predictions_collection.insert_one(document)
+    except Exception as e:
+        print("MongoDB insert error:", e)
+
+    return result
 
 # -----------------------------
 # Calibration Endpoint
