@@ -9,6 +9,8 @@ from decision_engine import make_decision
 from simulator import generate_data, zones_state, logs, history
 from datetime import datetime
 from database import predictions_collection
+from typing import List
+from fastapi import WebSocket, WebSocketDisconnect
 
 FIXED_LAT = 18.1510
 FIXED_LON = 74.5770
@@ -155,6 +157,114 @@ def predict(request: IrrigationRequest):
         print("MongoDB insert error:", e)
 
     return result
+
+
+
+class ConnectionManager:
+    def __init__(self):
+        self.devices: List[WebSocket] = []
+        self.dashboards: List[WebSocket] = []
+
+    async def connect_device(self, websocket: WebSocket):
+        await websocket.accept()
+        self.devices.append(websocket)
+
+    async def connect_dashboard(self, websocket: WebSocket):
+        await websocket.accept()
+        self.dashboards.append(websocket)
+
+    def disconnect_device(self, websocket: WebSocket):
+        self.devices.remove(websocket)
+
+    def disconnect_dashboard(self, websocket: WebSocket):
+        self.dashboards.remove(websocket)
+
+    async def broadcast_to_dashboards(self, message: dict):
+        for connection in self.dashboards:
+            await connection.send_json(message)
+
+manager = ConnectionManager()
+
+@app.websocket("/ws/device")
+async def device_socket(websocket: WebSocket):
+    await manager.connect_device(websocket)
+
+    try:
+        while True:
+            data = await websocket.receive_json()
+
+            soil_moisture = data.get("soil_moisture")
+            soil_moisture_lag1 = data.get("soil_moisture_lag1")
+            soil_type = data.get("soil_type")
+            slope = data.get("slope")
+            crop_kc = data.get("crop_kc")
+            calibration_factor = data.get("calibration_factor")
+
+            temperature, humidity, wind_speed, et_15min, rain_mm = fetch_weather_data(
+                FIXED_LAT, FIXED_LON
+            )
+
+            features = {
+                "temperature": temperature,
+                "humidity": humidity,
+                "wind_speed": wind_speed,
+                "rain_mm": rain_mm,
+                "et_15min": et_15min * crop_kc,
+                "soil_moisture_current": soil_moisture,
+                "soil_moisture_lag1": soil_moisture_lag1,
+                "water_volume_liters": 0
+            }
+
+            result = make_decision(
+                model=model,
+                features_dict=features,
+                soil_type=soil_type,
+                slope=slope,
+                current_sm=soil_moisture,
+                calibration_factor=calibration_factor
+            )
+
+            document = {
+                "timestamp": datetime.utcnow(),
+                "location": {
+                    "lat": FIXED_LAT,
+                    "lon": FIXED_LON
+                },
+                "input_features": {
+                    **features,
+                    "crop_kc": crop_kc,
+                    "soil_type": soil_type,
+                    "slope": slope,
+                    "calibration_factor": calibration_factor
+                },
+                "model_output": {
+                    "predicted_soil_moisture": result.get("predicted_soil_moisture")
+                },
+                "decision": result
+            }
+
+            try:
+                predictions_collection.insert_one(document)
+            except Exception as e:
+                print("MongoDB insert error:", e)
+
+            await websocket.send_json(result)
+            await manager.broadcast_to_dashboards(document)
+
+    except WebSocketDisconnect:
+        manager.disconnect_device(websocket)
+        print("Device disconnected")
+
+@app.websocket("/ws/dashboard")
+async def dashboard_socket(websocket: WebSocket):
+    await manager.connect_dashboard(websocket)
+
+    try:
+        while True:
+            await websocket.receive_text()  # keep alive
+    except WebSocketDisconnect:
+        manager.disconnect_dashboard(websocket)
+        print("Dashboard disconnected")
 
 # -----------------------------
 # Calibration Endpoint
