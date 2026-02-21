@@ -6,3 +6,5 @@ scikit-learn
 joblib
 requests
 python-multipart
+pymongo
+dnspython
