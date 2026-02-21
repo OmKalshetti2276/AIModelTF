@@ -249,7 +249,16 @@ async def device_socket(websocket: WebSocket):
                 print("MongoDB insert error:", e)
 
             await websocket.send_json(result)
-            await manager.broadcast_to_dashboards(document)
+            
+            # --- NEW FIX: Make document JSON serializable ---
+            broadcast_doc = {
+                **document,
+                "_id": str(document.get("_id")), # Convert ObjectId to string
+                "timestamp": document["timestamp"].isoformat() # Convert datetime to ISO string
+            }
+            
+            # Broadcast the safe dictionary instead of the raw document
+            await manager.broadcast_to_dashboards(broadcast_doc)
 
     except WebSocketDisconnect:
         manager.disconnect_device(websocket)
@@ -292,6 +301,20 @@ def calibrate(request: CalibrationRequest):
         "updated_calibration_factor": round(updated_c, 2)
     }
 
+@app.get("/predictions/history")
+def get_prediction_history(limit: int = 10):
+    """Fetches the most recent predictions from MongoDB."""
+    # Sort by timestamp descending (-1) to get the newest records
+    cursor = predictions_collection.find().sort("timestamp", -1).limit(limit)
+    
+    records = []
+    for doc in cursor:
+        # Make safe for JSON serialization
+        doc["_id"] = str(doc["_id"])
+        doc["timestamp"] = doc["timestamp"].isoformat()
+        records.append(doc)
+        
+    return records
 @app.get("/zones")
 def get_zones():
     return zones_state
