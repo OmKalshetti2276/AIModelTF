@@ -240,7 +240,11 @@ async def device_socket(websocket: WebSocket):
                 "model_output": {
                     "predicted_soil_moisture": result.get("predicted_soil_moisture")
                 },
-                "decision": result
+                "decision": {
+                    "action": result.get("action"),
+                    "duration_seconds": result.get("duration_seconds"),
+                    "water_volume_liters": result.get("water_volume_liters")
+    }
             }
 
             try:
