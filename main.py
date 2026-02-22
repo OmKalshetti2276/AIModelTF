@@ -27,8 +27,13 @@ def start_simulator():
 
 app.add_middleware(
     CORSMiddleware,
+<<<<<<< HEAD
     allow_origins=["*"],  # change later
     allow_credentials=False,
+=======
+    allow_origins=["http://192.168.56.1:8080"],  # change later
+    allow_credentials=True,
+>>>>>>> 95a71a9f2eec0dc13de3be63a07fd901c1675f4f
     allow_methods=["*"],
     allow_headers=["*"],
 )
