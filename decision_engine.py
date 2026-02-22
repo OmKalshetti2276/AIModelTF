@@ -1,8 +1,5 @@
 import pandas as pd
 
-LOWER_BOUND = 35
-TARGET = 45
-
 
 def make_decision(
     model,
@@ -33,7 +30,30 @@ def make_decision(
     X = pd.DataFrame([features_dict])[model.feature_names_in_]
 
     # Predict short-term moisture change
+    # delta_sm = model.predict(X)[0]
+    # predicted_sm = float(current_sm + delta_sm)
     delta_sm = model.predict(X)[0]
+
+# Physical lower bound
+    min_delta = -current_sm
+
+# Optional upper bound (based on soil type)
+    soil_fc = {
+    "sandy": 18,
+    "loamy": 32,
+    "clay": 40
+    }
+    field_capacity = soil_fc[soil_type]
+
+    LOWER_BOUND = 0.6 * field_capacity
+    TARGET = 0.85 * field_capacity
+
+    field_capacity = soil_fc[soil_type]
+    max_delta = field_capacity - current_sm
+
+# Constrain delta
+    delta_sm = max(min_delta, min(delta_sm, max_delta))
+
     predicted_sm = float(current_sm + delta_sm)
 
     # Decision logic

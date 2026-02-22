@@ -5,40 +5,65 @@ from decision_engine import make_decision
 # Loaded the trained model
 model = joblib.load("soil_response_model.pkl")
 
-# -----------------------------
-# Sample Test Input
-# -----------------------------
-current_sm = 0.0
-lag_sm = 39.0
+# # -----------------------------
+# # Sample Test Input
+# # -----------------------------
+# current_sm = 0.0
+# lag_sm = 39.0
 
-soil_type = "loamy"
-slope = "flat"
+# soil_type = "loamy"
+# slope = "flat"
 
-calibration_factor = 30  # example value
+# calibration_factor = 30  # example value
 
-# Example weather-derived inputs
-features = {
-    "temperature": 30,
-    "humidity": 50,
-    "wind_speed": 2,
-    "rain_mm": 0,
-    "et_15min": 0.08,
-    "soil_moisture_current": current_sm,
-    "soil_moisture_lag1": lag_sm,
-    "water_volume_liters": 0
-}
+# # Example weather-derived inputs
+# features = {
+#     "temperature": 30,
+#     "humidity": 50,
+#     "wind_speed": 2,
+#     "rain_mm": 0,
+#     "et_15min": 0.08,
+#     "soil_moisture_current": current_sm,
+#     "soil_moisture_lag1": lag_sm,
+#     "water_volume_liters": 0
+# }
 
-# -----------------------------
-# Run Decision Engine
-# -----------------------------
-result = make_decision(
-    model=model,
-    features_dict=features,
-    soil_type=soil_type,
-    slope=slope,
-    current_sm=current_sm,
-    calibration_factor=calibration_factor
-)
+# # -----------------------------
+# # Run Decision Engine
+# # -----------------------------
+# result = make_decision(
+#     model=model,
+#     features_dict=features,
+#     soil_type=soil_type,
+#     slope=slope,
+#     current_sm=current_sm,
+#     calibration_factor=calibration_factor
+# )
 
-print("\n=== TEST RESULT ===")
-print(result)
+# print("\n=== TEST RESULT ===")
+# print(result)
+def test_scenarios():
+    test_values = [5, 10, 15, 20, 25, 30]
+
+    for sm in test_values:
+        result = make_decision(
+            model=model,
+            features_dict={
+                "temperature": 32,
+                "humidity": 50,
+                "wind_speed": 2,
+                "rain_mm": 0,
+                "et_15min": 0.1,
+                "soil_moisture_current": sm,
+                "soil_moisture_lag1": sm,
+                "water_volume_liters": 0
+            },
+            soil_type="loamy",
+            slope="flat",
+            current_sm=sm,
+            calibration_factor=4
+        )
+
+        print(f"Soil Moisture: {sm} → {result}")
+
+test_scenarios()

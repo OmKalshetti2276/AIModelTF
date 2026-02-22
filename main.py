@@ -18,6 +18,8 @@ FIXED_LON = 74.5770
 
 app = FastAPI()
 
+
+
 @app.on_event("startup")
 def start_simulator():
     thread = Thread(target=generate_data, daemon=True)
@@ -26,7 +28,7 @@ def start_simulator():
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],  # change later
-    allow_credentials=True,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
