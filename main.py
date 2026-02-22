@@ -241,14 +241,14 @@ async def device_socket(websocket: WebSocket):
                     "predicted_moisture": result.get("predicted_moisture")
                 },
                 "decision": {
-                    "action": result.get("action"),
-                    "duration_seconds": result.get("duration_seconds"),
-                    "water_volume_liters": result.get("water_volume_liters")
-    }
+    "action": result.get("action"),
+    "recommended_valve_seconds": result.get("recommended_valve_seconds")
+        }
             }
 
             try:
-                predictions_collection.insert_one(document)
+                    insert_result = predictions_collection.insert_one(document)
+                    document["_id"] = str(insert_result.inserted_id)
             except Exception as e:
                 print("MongoDB insert error:", e)
 
@@ -256,10 +256,9 @@ async def device_socket(websocket: WebSocket):
             
             # --- NEW FIX: Make document JSON serializable ---
             broadcast_doc = {
-                **document,
-                "_id": str(document.get("_id")), # Convert ObjectId to string
-                "timestamp": document["timestamp"].isoformat() # Convert datetime to ISO string
-            }
+            **document,
+            "timestamp": document["timestamp"].isoformat()
+                }
             
             # Broadcast the safe dictionary instead of the raw document
             await manager.broadcast_to_dashboards(broadcast_doc)
