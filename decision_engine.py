@@ -40,7 +40,7 @@ def make_decision(
 # Optional upper bound (based on soil type)
     soil_fc = {
     "sandy": 18,
-    "loamy": 32,
+    "loamy": 64,
     "clay": 40
     }
     field_capacity = soil_fc[soil_type]
