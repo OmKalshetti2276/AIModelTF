@@ -18,6 +18,8 @@ FIXED_LON = 74.5770
 
 app = FastAPI()
 
+
+
 @app.on_event("startup")
 def start_simulator():
     thread = Thread(target=generate_data, daemon=True)
@@ -25,12 +27,11 @@ def start_simulator():
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://192.168.56.1:8080"],  # change later
-    allow_credentials=True,
+    allow_origins=["*"],  # change later
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
 
 
 # Load trained model once at startup
@@ -319,6 +320,8 @@ def get_prediction_history(limit: int = 10):
         records.append(doc)
         
     return records
+
+
 @app.get("/zones")
 def get_zones():
     return zones_state
