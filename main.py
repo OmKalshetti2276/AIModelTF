@@ -143,12 +143,11 @@ def predict(request: IrrigationRequest):
             "calibration_factor": request.calibration_factor
         },
         "model_output": {
-            "predicted_soil_moisture": result.get("predicted_soil_moisture")
+        "predicted_moisture": result.get("predicted_moisture")
         },
         "decision": {
             "action": result.get("action"),
-            "duration_seconds": result.get("duration_seconds"),
-            "water_volume_liters": result.get("water_volume_liters")
+            "recommended_valve_seconds": result.get("recommended_valve_seconds")
         }
     }
 
@@ -239,7 +238,7 @@ async def device_socket(websocket: WebSocket):
                     "calibration_factor": calibration_factor
                 },
                 "model_output": {
-                    "predicted_soil_moisture": result.get("predicted_soil_moisture")
+                    "predicted_moisture": result.get("predicted_moisture")
                 },
                 "decision": result
             }

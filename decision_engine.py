@@ -1,6 +1,5 @@
 import pandas as pd
 
-
 def make_decision(
     model,
     features_dict,
