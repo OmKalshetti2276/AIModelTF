@@ -64,7 +64,7 @@ def make_decision(
         }
 
     deficit = TARGET - current_sm
-    seconds = deficit * calibration_factor
+    seconds = deficit * calibration_factor/5
 
     return {
         "action": "IRRIGATE",

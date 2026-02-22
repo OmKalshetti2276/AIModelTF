@@ -43,7 +43,7 @@ model = joblib.load("soil_response_model.pkl")
 # print("\n=== TEST RESULT ===")
 # print(result)
 def test_scenarios():
-    test_values = [5, 10, 15, 20, 25, 30]
+    test_values = [0, 10, 15, 20, 25, 30]
 
     for sm in test_values:
         result = make_decision(
